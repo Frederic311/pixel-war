@@ -1,5 +1,3 @@
-📘 ISIMA Pixel War 2026 – Projet DevOps
-Réalisé par : Yvan Youmbi, Frédéric Onana
 
 ## Présentation
 Pixel War est une application collaborative en temps réel avec une grille partagée 50x50 :
