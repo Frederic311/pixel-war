@@ -1,0 +1,83 @@
+/* GLOBAL RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* FULLSCREEN LAYOUT */
+body {
+  background: #f4f4f4;
+  font-family: Arial, sans-serif;
+  height: 100vh;
+  overflow: hidden; /* empêche tout scroll */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* MAIN CONTAINER */
+.app-container {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+  height: 90vh; /* laisse un peu de marge */
+}
+
+/* COLOR PALETTE */
+.color-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border 0.15s ease;
+  border: 2px solid transparent;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.color-selected {
+  border: 3px solid #000;
+}
+
+/* GRID AUTO-RESIZE */
+:root {
+  --pixel-size: calc(70vh / 50); /* 50 = GRID_SIZE */
+}
+
+.grid {
+  display: grid;
+  gap: 1px;
+  background: #ccc;
+  padding: 5px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  max-height: 80vh;
+  max-width: 80vh;
+}
+
+/* PIXELS */
+.pixel {
+  width: var(--pixel-size);
+  height: var(--pixel-size);
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.pixel:hover {
+  outline: 1px solid #000;
+}

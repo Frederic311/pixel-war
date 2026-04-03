@@ -1,0 +1,41 @@
+version: "3.8"
+services:
+  redis:
+    image: redis:7
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    image: pixelwar-backend:local
+    networks:
+      default:
+        aliases:
+          - pixelwar-backend
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000" # utile pour debug local, mais frontend proxye via /api
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - REACT_APP_API_URL=/api
+    image: pixelwar-frontend:local
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
+volumes:
+  redis-data:

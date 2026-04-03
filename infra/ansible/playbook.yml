@@ -1,0 +1,102 @@
+---
+- name: Configure and deploy Pixel War locally
+  hosts: local
+  gather_facts: false
+
+  tasks:
+    - name: Check required CLI tools
+      ansible.builtin.shell: |
+        set -e
+        command -v kubectl
+        command -v kind
+        command -v docker
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Ensure kind cluster exists
+      ansible.builtin.shell: |
+        set -e
+        if ! kind get clusters | grep -q "^{{ cluster_name }}$"; then
+          kind create cluster --name {{ cluster_name }} --config {{ project_root }}/k8s/kind-config.yaml
+        fi
+      args:
+        executable: /bin/bash
+
+    - name: Install ingress-nginx
+      ansible.builtin.shell: |
+        set -e
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+        kubectl wait --namespace ingress-nginx --for=condition=available deploy/ingress-nginx-controller --timeout=180s
+      args:
+        executable: /bin/bash
+
+    - name: Build local images
+      ansible.builtin.shell: |
+        set -e
+        cd {{ project_root }}
+        docker compose build
+      args:
+        executable: /bin/bash
+
+    - name: Load backend image in kind
+      ansible.builtin.shell: kind load docker-image pixelwar-backend:local --name {{ cluster_name }}
+      args:
+        executable: /bin/bash
+
+    - name: Load frontend image in kind
+      ansible.builtin.shell: kind load docker-image pixelwar-frontend:local --name {{ cluster_name }}
+      args:
+        executable: /bin/bash
+
+    - name: Apply namespace
+      ansible.builtin.shell: kubectl apply -f {{ project_root }}/k8s/00-namespace.yaml
+      args:
+        executable: /bin/bash
+
+    - name: Create or update Redis secret
+      ansible.builtin.shell: |
+        set -e
+        kubectl create secret generic pixelwar-secrets \
+          -n pixelwar \
+          --from-literal=redis_password="{{ redis_password }}" \
+          --dry-run=client -o yaml | kubectl apply -f -
+      args:
+        executable: /bin/bash
+
+    - name: Apply app manifests
+      ansible.builtin.shell: |
+        set -e
+        kubectl apply -f {{ project_root }}/k8s/01-redis-headless.yaml
+        kubectl apply -f {{ project_root }}/k8s/01-redis-statefulset.yaml
+        kubectl apply -f {{ project_root }}/k8s/02-backend-deployment-service.yaml
+        kubectl apply -f {{ project_root }}/k8s/03-frontend-deployment-service.yaml
+        kubectl apply -f {{ project_root }}/k8s/04-ingress.yaml
+        kubectl apply -f {{ project_root }}/k8s/05-networkpolicies.yaml
+      args:
+        executable: /bin/bash
+
+    - name: Apply observability manifests
+      ansible.builtin.shell: kubectl apply -f {{ project_root }}/k8s/observability/06-observability.yaml
+      args:
+        executable: /bin/bash
+
+    - name: Wait backend rollout
+      ansible.builtin.shell: kubectl rollout status deployment/pixelwar-backend -n pixelwar --timeout=240s
+      args:
+        executable: /bin/bash
+
+    - name: Wait frontend rollout
+      ansible.builtin.shell: kubectl rollout status deployment/pixelwar-frontend -n pixelwar --timeout=240s
+      args:
+        executable: /bin/bash
+
+    - name: Wait prometheus rollout
+      ansible.builtin.shell: kubectl rollout status deployment/prometheus -n monitoring --timeout=240s
+      args:
+        executable: /bin/bash
+
+    - name: Wait grafana rollout
+      ansible.builtin.shell: kubectl rollout status deployment/grafana -n monitoring --timeout=240s
+      args:
+        executable: /bin/bash
